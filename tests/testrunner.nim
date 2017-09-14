@@ -1,33 +1,64 @@
 import contracts, macros
-import sets as willy
+
+macro show(b: typed): untyped =
+  result = newStmtList()
+  echo treeRepr(b)
 
 type
-  C = concept c
+  Co = concept c
     c.n is int
 
   D[T] = concept d
-    d.x is T
+    d.v is T
 
   Di = distinct D[int]
 
   X = object
     n: int
 
+  W = object
+    v: float
+
   Y[T] = object
-    x: T
+    v: T
 
-macro show(b: typed): untyped =
-  result = newStmtList()
-  echo treeRepr(b)
+#type CCoChecked = explicit Co
+#type CCoChecked = ContractMarker[Co]
 
-implements C: int
-implements C, Di: X
+type
+  CCo = concept c
+    c is Co
+
+  CCoChecked = concept c
+    c is CCo
+    explImpl(c) is CCo
+
+implements CCo: X
+#proc explImpl(t: X): CCo = t
+#[
+implements Co: int
+implements Di: X
 implements Di:
   type
     A = float
+]#
 
-echo X.explicitlyImplements C
+let x = X(n: 3)
+let y = Y[float](v: 3)
+
+echo x is Co
+echo x is CCoChecked
+echo y is CCoChecked
+echo x is CCo
+echo y is CCo
+echo explicitlyImplements(X, Co)
+echo X.explicitlyImplements CCoChecked
+#[
 echo X.explicitlyImplements Di
-echo int.explicitlyImplements C
+echo int.explicitlyImplements Co
 echo int.explicitlyImplements Di
 echo A.explicitlyImplements Di
+]#
+proc print(c: CCo) = echo "Jepp"
+
+print x
