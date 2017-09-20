@@ -10,7 +10,9 @@ macro displayTree*(b: untyped): untyped =
   result = b
   echo treeRepr(b)
 
-#proc explicitlyImplements*(t: typedesc, c: typedesc): bool = false
+# regular flag procs work, but imply explicit implementation for concepts
+# refined by or being refinements of the concept given in an implements-
+# statement.
 template explicitlyImplements*(t, c: untyped): bool =
   compiles(getAst(implProcCall(t, c)))
 
