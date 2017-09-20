@@ -10,20 +10,34 @@ macro displayTree*(b: untyped): untyped =
   result = b
   echo treeRepr(b)
 
-# regular flag procs work, but imply explicit implementation for concepts
-# refined by or being refinements of the concept given in an implements-
-# statement.
-template explicitlyImplements*(t, c: untyped): bool =
-  compiles(getAst(implProcCall(t, c)))
+type
+#  ConceptIdEntry = tuple[idt, def: NimNode]
+#  ConceptId = object
+#    entry: ConceptIdEntry
+#    refined: openArray[ConceptIdEntry]
+  ConceptId = string
+  ConceptIdTyClass[id: static[ConceptId]] = distinct auto
 
-template implProcDef(t, c: untyped): NimNode =
-  proc explImpl*(ty: t): c = ty
+template flagProcDef(T: untyped, cId: ConceptId): untyped =
+  proc explImpl(Ty: typedesc[T], Co: typedesc[ConceptIdTyClass[cId]]): bool = true
+
+template flagProcQuery(T: untyped, cId: ConceptId): untyped =
+  compiles explImpl(T, ConceptIdTyClass[cId])
+
+proc id(n: NimNode): ConceptId =
+  n.symbol.getImpl.treeRepr
+#  echo C.symbol.getImpl.treeRepr
+#  echo C.symbol.getImpl[2][2][0].symbol.getImpl.repr
+#  echo C.symbol.getImpl[2].symbol.getImpl.repr
+
+macro explicitlyImplements*(T, C: typed): untyped =
+  getAst flagProcQuery(T, C.id)
 
 macro addImpl(t, c: untyped): NimNode =
 #  if not compiles(var dummy = c.isAbsolutelyExplicitish):
 #    warning msgFmt % $c.symbol & " is not explicit, statement regarding it " &
 #      "is purely informational and will be ignored."
-  getAst implProcDef(t, c)
+  getAst flagProcDef(t, c.id)
 
 proc expectKind(n: NimNode, k: NimNodeKind, msg: string) =
   if k != n.kind:
@@ -57,4 +71,4 @@ macro implements*(args: varargs[typed]): typed =
     for i in stmts:
       var im = if nnkTypeDef == i.kind: i[0] else: i
       expectKind(im, nnkSym, msgFmt % "syntax error in implementations spec")
-      result.add getAst(addImpl(im, c))
+      result.add getAst addImpl(im, c)

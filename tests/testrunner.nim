@@ -30,31 +30,25 @@ type
   DsC = concept c of DsF
     explImpl(c) is DsF
 
-implements CoF: X
-implements CoF: Y
-implements Co: int
-implements DsF:
-  type
-    A = string
+#implements CoF: X
+#implements CoF: Y
+implements Co: X
+#implements DsF:
+#  type
+#    A = string
 
 let
   x = X(n: 1)
   y = Y(n: 2)
   w = W(v: 4.0)
-  a: A = "five"
+#  a: A = "five"
   i: int = 6
 
-echo x is Co
-echo x is CoC
-echo y is Co
-echo y is CoC
-echo w is Co
-echo w is CoC
-echo a is DsC
+echo X.explicitlyImplements(Co)
 
 proc print(c: CoC) = echo "Jepp: ", c.n
 
-print y
+#print y
 
 #[
   nnkTypeClassTy.newTree(
@@ -78,11 +72,3 @@ print y
 macro explicit(arg: untyped): NimNode =
   echo "bla -----------------------"
   newEmptyNode()
-
-displayTree:
-  type
-    MyContract2 = explicit Co
-
-  explicit MyContract c:
-    c.f is bool
- 
