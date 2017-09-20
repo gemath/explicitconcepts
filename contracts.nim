@@ -25,10 +25,10 @@ template flagProcQuery(T: untyped, cId: ConceptId): untyped =
   compiles explImpl(T, ConceptIdTyClass[cId])
 
 proc id(n: NimNode): ConceptId =
-  n.symbol.getImpl.treeRepr
 #  echo C.symbol.getImpl.treeRepr
 #  echo C.symbol.getImpl[2][2][0].symbol.getImpl.repr
 #  echo C.symbol.getImpl[2].symbol.getImpl.repr
+  n.symbol.getImpl.treeRepr
 
 macro explicitlyImplements*(T, C: typed): untyped =
   getAst flagProcQuery(T, C.id)
