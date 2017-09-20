@@ -1,9 +1,5 @@
 import contracts, macros
 
-macro show(b: typed): untyped =
-  result = newStmtList()
-  echo treeRepr(b)
-
 type
   Co = concept c
     c.n is int
@@ -11,54 +7,82 @@ type
   D[T] = concept d
     d.v is T
 
-  Di = distinct D[int]
-
-  X = object
-    n: int
+  Di = D[int]
+  Ds = D[string]
 
   W = object
     v: float
 
-  Y[T] = object
-    v: T
+  X = object
+    n: int
 
-#type CCoChecked = explicit Co
-#type CCoChecked = ContractMarker[Co]
+  Y = object
+    n: int
 
 type
-  CCo = concept c
-    c is Co
+  CoF = concept c of Co
 
-  CCoChecked = concept c
-    c is CCo
-    explImpl(c) is CCo
+  CoC = concept c of CoF
+    explImpl(c) is CoF
 
-implements CCo: X
-#proc explImpl(t: X): CCo = t
-#[
+  DsF = concept c of Ds
+
+  DsC = concept c of DsF
+    explImpl(c) is DsF
+
+implements CoF: X
+implements CoF: Y
 implements Co: int
-implements Di: X
-implements Di:
+implements DsF:
   type
-    A = float
-]#
+    A = string
 
-let x = X(n: 3)
-let y = Y[float](v: 3)
+let
+  x = X(n: 1)
+  y = Y(n: 2)
+  w = W(v: 4.0)
+  a: A = "five"
+  i: int = 6
 
 echo x is Co
-echo x is CCoChecked
-echo y is CCoChecked
-echo x is CCo
-echo y is CCo
-echo explicitlyImplements(X, Co)
-echo X.explicitlyImplements CCoChecked
-#[
-echo X.explicitlyImplements Di
-echo int.explicitlyImplements Co
-echo int.explicitlyImplements Di
-echo A.explicitlyImplements Di
-]#
-proc print(c: CCo) = echo "Jepp"
+echo x is CoC
+echo y is Co
+echo y is CoC
+echo w is Co
+echo w is CoC
+echo a is DsC
 
-print x
+proc print(c: CoC) = echo "Jepp: ", c.n
+
+print y
+
+#[
+  nnkTypeClassTy.newTree(
+    nnkArglist.newTree(
+      newIdentNode(!"c")
+    ),
+    newEmptyNode(),
+    newEmptyNode(),
+    nnkStmtList.newTree(
+      nnkInfix.newTree(
+        newIdentNode(!"is"),
+        nnkDotExpr.newTree(
+          newIdentNode(!"c"),
+          newIdentNode(!"f")
+        ),
+        newIdentNode(!"bool")
+      )
+    )
+  )
+]#
+macro explicit(arg: untyped): NimNode =
+  echo "bla -----------------------"
+  newEmptyNode()
+
+displayTree:
+  type
+    MyContract2 = explicit Co
+
+  explicit MyContract c:
+    c.f is bool
+ 

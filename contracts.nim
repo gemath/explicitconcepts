@@ -2,26 +2,15 @@ import strutils, macros
 
 const msgFmt = "implements: $#"
 
-    #[
-type
-  # TODO: How do we mark Contracts?
-  # A contract checks the explicit implementation relation at compile time.
-  ContractMarker*[C] = concept ctm of C
+macro dumpTreeTyped*(b: typed): untyped =
+  result = newStmtList()
+  echo treeRepr(b)
 
-  Contract*[C] = concept ct, type T
-    ct is ContractMarker[C]
-    explImpl(T, ContractMarker[C])
+macro displayTree*(b: untyped): untyped =
+  result = b
+  echo treeRepr(b)
 
-proc isContract*(t: typedesc): bool = false
-
-template addContrProc(c: untyped): NimNode =
-  proc isContract*(t: typedesc[c]): bool = true
-    ]#
-
-template implProcCall(t, c: untyped): NimNode =
-  var x: c = explImpl(t)
-
-#proc explicitlyImplements*(t: typedesc, c: typedesc): bool {.compileTime.} = false
+#proc explicitlyImplements*(t: typedesc, c: typedesc): bool = false
 template explicitlyImplements*(t, c: untyped): bool =
   compiles(getAst(implProcCall(t, c)))
 
@@ -29,9 +18,9 @@ template implProcDef(t, c: untyped): NimNode =
   proc explImpl*(ty: t): c = ty
 
 macro addImpl(t, c: untyped): NimNode =
-#  if not compiles(var dummy = c.isAbsolutelyContractish):
-#    warning msgFmt % $c.symbol & " is not a Contract, statement regarding it " &
-#      "is informational and will not be checked"
+#  if not compiles(var dummy = c.isAbsolutelyExplicitish):
+#    warning msgFmt % $c.symbol & " is not explicit, statement regarding it " &
+#      "is purely informational and will be ignored."
   getAst implProcDef(t, c)
 
 proc expectKind(n: NimNode, k: NimNodeKind, msg: string) =
@@ -67,25 +56,3 @@ macro implements*(args: varargs[typed]): typed =
       var im = if nnkTypeDef == i.kind: i[0] else: i
       expectKind(im, nnkSym, msgFmt % "syntax error in implementations spec")
       result.add getAst(addImpl(im, c))
-
-template explicit*(c: typed): untyped =
-  Contract[c]
-
-#[
-  nnkBracketExpr.newTree(
-    newIdentNode(!"Contract"),
-    copyNimNode c
-  )
-
-macro contract(name: untyped, rest: varargs[untyped]): untyped =
-  result = newStmtList()
-  echo repr(result)
-
-dumpTree:
-  contract MyContract c, ref d:
-    type(c) is type( d)
-
-dumpTree:
-  type MyContract = concept c, ref d
-    type(c) is type(d)
-]#
