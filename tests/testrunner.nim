@@ -1,8 +1,20 @@
 import contracts, macros
 
+macro dumpTreeTyped*(b: typed): untyped =
+  result = newStmtList()
+  echo treeRepr(b)
+
+macro displayTree*(b: untyped): untyped =
+  result = b
+  echo treeRepr(b)
+
 type
   Co = concept c
     c.n is int
+
+  Coa = Co
+
+  Cod = distinct Co
 
   D[T] = concept d
     d.v is T
@@ -19,7 +31,6 @@ type
   Y = object
     n: int
 
-type
   CoF = concept c of Co
 
   CoC = concept c of CoF
@@ -32,7 +43,10 @@ type
 
 #implements CoF: X
 #implements CoF: Y
-implements Co: X
+implements Coa: X
+echo X.explicitlyImplements(Coa)
+implements Cod: X
+#addImpl(X, Co)
 #implements DsF:
 #  type
 #    A = string
@@ -45,10 +59,11 @@ let
   i: int = 6
 
 echo X.explicitlyImplements(Co)
+echo X.explicitlyImplements(Cod)
 
-proc print(c: CoC) = echo "Jepp: ", c.n
+proc print(c: Cod) = echo "Jepp: ", c.n
 
-#print y
+print x
 
 #[
   nnkTypeClassTy.newTree(
