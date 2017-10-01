@@ -36,13 +36,20 @@ type
 
 #implements CoF: X
 #implements CoF: Y
-implements Cod: X
+#implements Cod: X
 implements Co: X
 
-#implements Ds:
-#  type
-#    A = string
+implements Co:
+  type
+    A = string
 
+    Z[T] = object
+      x: T
+
+    Zs = Z[string]
+
+echo Z.explicitlyImplements(Co)
+echo Zs.explicitlyImplements(Co)
 echo X.explicitlyImplements(Co)
 echo X.explicitlyImplements(Coa)
 echo X.explicitlyImplements(Cod)

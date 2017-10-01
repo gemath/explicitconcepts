@@ -14,11 +14,7 @@ type
 proc`$`(cie: ConceptId): string =
   cie.sym.treeRepr & " | " & cie.def.treeRepr
 
-proc hash(cie: ConceptId): Hash =
-  hash($cie)
-
 proc resolveTypeInfo(cid: ConceptId): ConceptId =
-  echo $cid
   if not getImpl(cid.def.symbol).findChild(nnkBracketExpr == it.kind).isNil:
     err("generic concepts are not yet supported.", cid.sym)
   var t = cid.def.getType[1]
@@ -31,20 +27,23 @@ proc resolveTypeInfo(cid: ConceptId): ConceptId =
     err("concept expected.", cid.sym)
     (nil, nil)
 
-proc id(t: NimNode): ConceptId =
-  result = (newEmptyNode(), t).resolveTypeInfo
+proc structuredId(t: NimNode): ConceptId =
+  (newEmptyNode(), t).resolveTypeInfo
+
+proc id(t: NimNode): Hash =
+  hash($t.structuredId)
 
 template implProcCall(c, t: untyped): untyped =
   implementedBy(c, t)
 
 template flagProcDef(t: untyped, cId: Hash): untyped =
-  proc explImpl(Ty: typedesc[t], Co: typedesc[ConceptIdTyClass[cid]]): bool = true
+  proc explImpl*(Ty: typedesc[t], Co: typedesc[ConceptIdTyClass[cid]]): bool = true
 
 template flagProcCall(t: untyped, cId: Hash): untyped =
   explImpl(t, ConceptIdTyClass[cId])
 
 macro explicitlyImplements*(t, c: typed): untyped =
-  newStmtList(newCall("compiles", getAst flagProcCall(t, hash(c.id))))
+  newStmtList(newCall("compiles", getAst flagProcCall(t, c.id)))
 
 proc expectKind(n: NimNode, k: NimNodeKind, msg: string) =
   if k != n.kind:
@@ -59,17 +58,15 @@ macro implementedBy*(c, t: typed): typed =
 #  if flagProcQuery(t, c.id):
 #    newStmtList()
 #  else:
-  var
-    csid = c.id
-    csidh = hash(csid)
+  var csid = c.id
   result = newStmtList(
     nnkWhenStmt.newTree(
       nnkElifBranch.newTree(
         nnkPrefix.newTree(
           newIdentNode(!"not"),
-          newCall("compiles", getAst(flagProcCall(t, csidh)))
+          newCall("compiles", getAst(flagProcCall(t, csid)))
         ),
-        getAst(flagProcDef(t, csidh))
+        getAst(flagProcDef(t, csid))
       )
     )
   )
@@ -83,11 +80,13 @@ macro implements*(args: varargs[untyped]): untyped =
   if nnkTypeSection == stmts[0].kind:
     stmts = stmts[0]
     result.add stmts
+  if args.len == 0 or nnkStmtList == args[0].kind:
+    err("error in concepts list.", args)
   for c in args:
     if c.kind in {nnkStmtList}:
       break
-    expectKind(c, nnkIdent, "syntax error in concepts list.")
+    if stmts.len == 0:
+      err("error in implementations spec.", stmts)
     for i in stmts:
       var im = if nnkTypeDef == i.kind: i[0] else: i
-      expectKind(im, nnkIdent, "syntax error in implementations spec.")
       result.add getAst implProcCall(c, im)
