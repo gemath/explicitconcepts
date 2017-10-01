@@ -1,12 +1,4 @@
-import contracts, macros
-
-macro dumpTreeTyped*(b: typed): untyped =
-  result = newStmtList()
-  echo treeRepr(b)
-
-macro displayTree*(b: untyped): untyped =
-  result = b
-  echo treeRepr(b)
+import explimpl, macros
 
 type
   Co = concept c
@@ -37,19 +29,23 @@ type
     explImpl(c) is CoF
 
   DsF = concept c of Ds
+    c is Ds
 
   DsC = concept c of DsF
     explImpl(c) is DsF
 
 #implements CoF: X
 #implements CoF: Y
-implements Coa: X
-echo X.explicitlyImplements(Coa)
-implements Cod: X
-#addImpl(X, Co)
-#implements DsF:
+implements Ds: X
+implements Co: X
+
+#implements Ds:
 #  type
 #    A = string
+
+echo X.explicitlyImplements(Co)
+echo X.explicitlyImplements(Coa)
+echo X.explicitlyImplements(Cod)
 
 let
   x = X(n: 1)
@@ -58,12 +54,9 @@ let
 #  a: A = "five"
   i: int = 6
 
-echo X.explicitlyImplements(Co)
-echo X.explicitlyImplements(Cod)
-
 proc print(c: Cod) = echo "Jepp: ", c.n
 
-print x
+#print x
 
 #[
   nnkTypeClassTy.newTree(
@@ -84,6 +77,3 @@ print x
     )
   )
 ]#
-macro explicit(arg: untyped): NimNode =
-  echo "bla -----------------------"
-  newEmptyNode()
