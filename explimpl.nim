@@ -21,12 +21,12 @@ proc resolveTypeInfo(cid: ConceptId): ConceptId =
   echo $cid
   if not getImpl(cid.def.symbol).findChild(nnkBracketExpr == it.kind).isNil:
     err("generic concepts are not yet supported.", cid.sym)
-  var n = cid.def.getType[1]
-  case n.kind
-  of nnkSym:          # distinct type: get the original type definition.
-    ( (if nnkEmpty == cid.sym.kind: n else: cid.sym) , n ).resolveTypeInfo
-  of nnkBracketExpr:  # actual type definition: return it.
-    (cid.sym, n)
+  var t = cid.def.getType[1]
+  case t.typeKind
+  of ntyDistinct:       # distinct type: get the original type definition.
+    ( (if nnkEmpty == cid.sym.kind: t else: cid.sym) , t ).resolveTypeInfo
+  of ntyUserTypeClass:  # actual concept definition: return it.
+    (cid.sym, t)
   else:
     err("concept expected.", cid.sym)
     (nil, nil)

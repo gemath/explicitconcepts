@@ -36,7 +36,7 @@ type
 
 #implements CoF: X
 #implements CoF: Y
-implements Ds: X
+implements Cod: X
 implements Co: X
 
 #implements Ds:
