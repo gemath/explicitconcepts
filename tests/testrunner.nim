@@ -1,21 +1,12 @@
 import explimpl, macros
 
 type
-  Co = concept c
+  C = concept c
     c.n is int
 
-  Coa = Co
+  Ca = C
 
-  Cod = distinct Co
-
-  D[T] = concept d
-    d.v is T
-
-  Di = D[int]
-  Ds = D[string]
-
-  W = object
-    v: float
+  Cd = distinct C
 
   X = object
     n: int
@@ -23,64 +14,26 @@ type
   Y = object
     n: int
 
-  CoF = concept c of Co
+  Z[T] = object
+    x: T
 
-  CoC = concept c of CoF
-    explImpl(c) is CoF
+explicit:
+  type
+    ExC = concept c
+      c is C
 
-  DsF = concept c of Ds
-    c is Ds
+implements C, ExC: X
 
-  DsC = concept c of DsF
-    explImpl(c) is DsF
-
-#implements CoF: X
-#implements CoF: Y
-#implements Cod: X
-implements Co: X
-
-implements Co:
+implements C:
   type
     A = string
-
-    Z[T] = object
-      x: T
-
     Zs = Z[string]
 
-echo Z.explicitlyImplements(Co)
-echo Zs.explicitlyImplements(Co)
-echo X.explicitlyImplements(Co)
-echo X.explicitlyImplements(Coa)
-echo X.explicitlyImplements(Cod)
-
-let
-  x = X(n: 1)
-  y = Y(n: 2)
-  w = W(v: 4.0)
-#  a: A = "five"
-  i: int = 6
-
-proc print(c: Cod) = echo "Jepp: ", c.n
-
-#print x
-
-#[
-  nnkTypeClassTy.newTree(
-    nnkArglist.newTree(
-      newIdentNode(!"c")
-    ),
-    newEmptyNode(),
-    newEmptyNode(),
-    nnkStmtList.newTree(
-      nnkInfix.newTree(
-        newIdentNode(!"is"),
-        nnkDotExpr.newTree(
-          newIdentNode(!"c"),
-          newIdentNode(!"f")
-        ),
-        newIdentNode(!"bool")
-      )
-    )
-  )
-]#
+assert(X.explicitlyImplements(C) == true)
+assert(X.explicitlyImplements(Ca) == true)
+assert(X.explicitlyImplements(Cd) == false)
+assert(Y.explicitlyImplements(C) == false)
+assert(Z[float].explicitlyImplements(C) == false)
+assert(Zs.explicitlyImplements(C) == true)
+assert(X.explicitlyImplements(ExC9F08B7C91364CDF2) == true)
+assert(X is ExC == true)
