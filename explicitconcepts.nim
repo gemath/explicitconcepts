@@ -125,12 +125,10 @@ macro explicit*(args: untyped): untyped =
   args.expectKind(nnkStmtList)
   args[0].expectKind(nnkTypeSection)
   for td in args[0]:
-    if td.findChild(nnkTypeClassTy == it.kind and nnkArglist == it[0].kind).isNil:
+    if td.findChild(nnkTypeClassTy == it.kind and
+        nnkArglist == it[0].kind).isNil:
       error(explFmt % "not a concept.", td[0])
     var
-      iden = td[0].ident
-      co = iden
-      standInType = newIdentNode($iden & magic)
-    td.del 0
-    td.insert(0, standInType)
-    result.add getAst explConcDef(co, standInType)
+      sc = td[0].copy
+    td[0].basename = $td[0].basename & magic
+    result.add getAst explConcDef(sc, td[0].basename)
