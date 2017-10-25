@@ -53,7 +53,7 @@ implements ExD:
 implements ExD: Z[float]
 
 assert(X.explicitlyImplements(C) == true)
-#assert(X.explicitlyImplements(ExC) == true)
+assert(X.explicitlyImplements(ExC) == true)
 
 # The implements-relationship extends to aliases ..
 assert(X.explicitlyImplements(Ca) == true)
@@ -74,3 +74,4 @@ assert(Y.explicitlyImplements(C) == false)
 assert(Z[float].explicitlyImplements(C) == false)
 assert(X.explicitlyImplements(ExC9F08B7C91364CDF2) == true)
 assert(X is ExC == true)
+
