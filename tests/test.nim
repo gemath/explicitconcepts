@@ -35,6 +35,9 @@ explicit:
 # ExC. C is not explicit, so the compiler will warn about it.
 implements C, ExC: X
 
+# Redundant implements-statements are ignored and warned about.
+implements ExC: X
+
 # Defines implements-relationships for new types: Xx and Y implement ExD.
 implements ExD:
   type
@@ -48,7 +51,7 @@ type
   Yn* = object of Y
     n*: int
 
-# This blatant lie (X doesn't satisfy ExD) should explode:
+# This blatant lie (X doesn't even satisfy ExD) should explode:
 # TODO: how do I test this?
 #assert(not compiles(implements ExD: X), "this should not compile!")
 
@@ -58,31 +61,32 @@ implements ExD: Z[float]
 
 proc run*() =
   # Make sure that implements-relationships registered correctly ..
-  assert(X.explicitlyImplements(C) == true)
-  assert(X.explicitlyImplements(ExC) == true)
-  assert(Xx.explicitlyImplements(ExD) == true)
-  assert(Y.explicitlyImplements(ExD) == true)
-  assert(Z[float].explicitlyImplements(ExD) == true)
+  assert(X.checkImplements(C) == true)
+  assert(X.checkImplements(ExC) == true)
+  assert(Xx.checkImplements(ExD) == true)
+  assert(Y.checkImplements(ExD) == true)
+  assert(Z[float].checkImplements(ExD) == true)
 
   # .. and that there is no false positive.
+  assert(Yn.checkImplements(C) == false)
 
   # Implements-relationships extend to aliases ..
-  assert(X.explicitlyImplements(Ca) == true)
-  assert(Xa.explicitlyImplements(C) == true)
+  assert(X.checkImplements(Ca) == true)
+  assert(Xa.checkImplements(C) == true)
 
   # .. and to derivatives of the implementing type ..
-  assert(Xx.explicitlyImplements(C) == true)
+  assert(Xx.checkImplements(C) == true)
 
   # .. but not to distinct aliases ..
-  assert(X.explicitlyImplements(Cd) == false)
-  assert(Xd.explicitlyImplements(C) == false)
+  assert(X.checkImplements(Cd) == false)
+  assert(Xd.checkImplements(C) == false)
 
   # .. or refinements of an implemented concept.
-  assert(X.explicitlyImplements(Cr) == false)
+  assert(X.checkImplements(Cr) == false)
 
   # The additional stand-in concept generated for an explicit concept (for
   # internal use, note the "magic" postfix).
-  assert(X.explicitlyImplements(ExC9F08B7C91364CDF2) == true)
+  assert(X.checkImplements(ExC9F08B7C91364CDF2) == true)
 
   # Both types technically satisfy the concept, but the concept is explicit and
   # only X has an implements-relationship with it.

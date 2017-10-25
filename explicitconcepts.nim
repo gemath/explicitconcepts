@@ -49,7 +49,7 @@ template flagProcCall(t: untyped, cId: Hash): untyped =
   var m = magic
   `explImpl m`(t, ConceptCompanion[cId])
 
-macro explicitlyImplements*(t, c: typed): untyped =
+macro checkImplements*(t, c: typed): untyped =
   newStmtList(newCall("compiles", getAst flagProcCall(t, c.id)))
 
 proc standIn(sym, def: NimNode): NimNode =
@@ -60,21 +60,17 @@ proc standIn(sym, def: NimNode): NimNode =
       var lst = result.last
       result = nil
       if nnkCall == lst.kind:
-        if "explicitlyImplements" == $lst[0].symbol:
+        if "checkImplements" == $lst[0].symbol:
           lst = lst.last
           if $sym.symbol & magic == $lst.symbol:
             result = lst
 
-proc procDef(cid: Hash, t: NimNode): NimNode =
-  nnkWhenStmt.newTree(
-    nnkElifBranch.newTree(
-      nnkPrefix.newTree(
-        newIdentNode(!"not"),
-        newCall("compiles", getAst(flagProcCall(t, cid)))
-      ),
-      getAst(flagProcDef(t, cid))
-    )
-  )
+template procDef(cid: Hash, t: typed, warn: bool): untyped =
+  when compiles(flagProcCall(t, cid)):
+    when warn:
+      {.warning: implFmt % "ignored redundant statement.".}
+  else:
+    flagProcDef(t, cid)
 
 macro implementedBy*(c, t: typed): typed =
   var
@@ -82,13 +78,13 @@ macro implementedBy*(c, t: typed): typed =
     standInType = standIn(c, csid.def)
 
   result = newStmtList()
-  result.add procDef(hash($csid), t)
+  result.add getAst procDef(hash($csid), t, true)
   if standInType.isNil:
     warning implFmt %
       $c.symbol & " is not explicit, the implements-relationship will not" &
       " be checked on use of implementing type."
   else:
-    result.add procDef(standInType.id, t)
+    result.add getAst procDef(standInType.id, t, false)
 
 template checkMatch(c, t: untyped): untyped =
   when not(t is c):
@@ -118,7 +114,7 @@ macro implements*(args: varargs[untyped]): untyped =
 template explConcDef(co, standIn): untyped =
   type co = concept c, type T
     c is standIn
-    explicitlyImplements(T, standIn)
+    checkImplements(T, standIn)
 
 macro explicit*(args: untyped): untyped =
   result = args
