@@ -46,4 +46,4 @@ The ``implements``-relation between a type and a concept automatically
 extends to aliases of the two and to derivatives of the type, but not to
 distinct aliases of the two and to refinements of the concept.
 
-For details see the source files in the ``tests`` directory.
+For more details see the source files in the ``tests`` directory.
