@@ -12,7 +12,7 @@ type if such an ``implements``-relation exists.
 Use
 ===
 
-.. code::
+.. code:: python
   implements C, ExC: X
 
 Defines ``implements``-relations for an existing type and existing concepts:
