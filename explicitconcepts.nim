@@ -1,5 +1,7 @@
 #
 # Copyright (c) 2017 Gerd Mathar
+# Published under the Apache License 2.0
+# See the file "LICENSE" included in this distribution for licensing and copying details.
 #
 
 ## This module provides explicit concepts and an ``implements``-relation
