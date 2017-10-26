@@ -10,10 +10,11 @@ more readable and safer code: An explicit concept is only satisfied by a
 type if such an ``implements``-relation exists.
 
 Use
-====
+===
 
-.. code:: nim
+.. code::
   implements C, ExC: X
+
 Defines ``implements``-relations for an existing type and existing concepts:
 ``X`` implements concepts ``C`` and ``ExC``.
 
