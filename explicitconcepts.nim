@@ -86,7 +86,8 @@ type
   ConceptCompanion[id: static[Hash]] = distinct auto
 
 proc`$`(cie: ConceptId): string =
-  cie.sym.treeRepr & " | " & cie.def.treeRepr
+  #cie.sym.treeRepr & " | " & cie.def.treeRepr
+  cie.sym.treeRepr & cie.def.lineInfo
 
 proc resolveConcept(cid: ConceptId): ConceptId =
   var ti = getImpl(cid.def.symbol)
@@ -110,7 +111,11 @@ proc structuredId(c: NimNode): ConceptId =
   (c, c).resolveConcept
 
 proc id(c: NimNode): Hash =
-  hash($c.structuredId)
+  var sid = c.structuredId
+
+  #echo $c.symbol & " -> " & $sid.sym.symbol & ": " & sid.def.lineInfo
+
+  hash($sid)
 
 template implProcCall(c, t: untyped): untyped =
   implementedBy(c, t)
@@ -118,13 +123,13 @@ template implProcCall(c, t: untyped): untyped =
 template flagProcDef(t: untyped, cId: Hash): untyped =
   var m = magic
 
-  # The existence of this proc signlas an ``implemements``-relation.
-  proc `explImpl m`*(Ty: typedesc[t], Co: typedesc[ConceptCompanion[cid]]): bool
-    {.compileTime.} = true
+  # The existence of this proc signals an ``implemements``-relation.
+  proc `impl m`*(Ty: typedesc[t], Co: typedesc[ConceptCompanion[cid]])
+    {.compileTime.} = discard
 
 template flagProcCall(t: untyped, cId: Hash): untyped =
   var m = magic
-  `explImpl m`(t, ConceptCompanion[cId])
+  `impl m`(t, ConceptCompanion[cId])
 
 macro checkImplements*(t, c: typed): untyped =
   ## Produces the code to check wether there is an ``implemements``-relation
@@ -164,16 +169,16 @@ macro implementedBy*(c, t: typed): typed =
   ## concept given by the symbol nodes ``t`` and ``c``, respectively.
   var
     csid = c.structuredId
-    standInType = standIn(c, csid.def)
+    standInConc = standIn(c, csid.def)
 
   result = newStmtList()
   result.add getAst procDef(hash($csid), t, true)
-  if standInType.isNil:
+  if standInConc.isNil:
     warning implFmt %
       $c.symbol & " is not explicit, the implements-relation will not" &
       " be checked on use of implementing type."
   else:
-    result.add getAst procDef(standInType.id, t, false)
+    result.add getAst procDef(standInConc.id, t, false)
 
 template checkMatch(c, t: untyped): untyped =
   when not(t is c):
