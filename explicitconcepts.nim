@@ -94,10 +94,12 @@ proc conceptInfo(ci: ConceptInfo): ConceptInfo =
     error(implFmt % "generic concepts are not yet supported.", ci.sym)
 
   case ti[2].kind
-  of nnkSym:          # type alias: resolve original type instead.
+  of nnkSym:
+    # type alias: query original symbol and definition instead.
     (ti[2], ti[2]).conceptInfo
-  of nnkDistinctTy:   # distinct type: resolve original type with distinct name.
-    (ci.sym, ti[2][0]).conceptInfo
+  of nnkDistinctTy:
+    # distinct type: keep original distinct name, resolve original type.
+    (ci.sym, (ci.sym, ti[2][0]).conceptInfo.def)
   of nnkTypeClassTy:  # actual concept definition: return it.
     (ci.sym, ti)
   else:
@@ -105,7 +107,8 @@ proc conceptInfo(ci: ConceptInfo): ConceptInfo =
     (nil, nil)
 
 proc conceptInfo(c: NimNode): ConceptInfo =
-  # Returns a unique id for the passed concept symbol node.
+  # Returns a tuple containing the resolved actual symbol and definition nodes
+  # of the passed concept symbol node.
   (c, c).conceptInfo
 
 proc toId(ci: ConceptInfo): ConceptId =
