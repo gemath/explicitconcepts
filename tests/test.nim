@@ -1,7 +1,7 @@
 import explicitconcepts
 
 type
-  C* = concept c
+  C = concept c
     c.n is int
 
   Ca = C
