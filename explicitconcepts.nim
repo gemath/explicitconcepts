@@ -72,7 +72,7 @@
 ##
 ## For details see the source files in the ``tests`` directory.
 
-import strutils, macros, hashes
+import strutils, macros
 
 const
   magic = "9F08B7C91364CDF2"
@@ -81,7 +81,7 @@ const
 
 type
   ConceptInfo = tuple[sym, def: NimNode]
-  ConceptId = Hash
+  ConceptId = string
   ConceptCompanion[id: static[ConceptId]] = distinct auto
 
 proc`$`(cie: ConceptInfo): string =
@@ -109,7 +109,7 @@ proc conceptInfo(c: NimNode): ConceptInfo =
   (c, c).conceptInfo
 
 proc toId(ci: ConceptInfo): ConceptId =
-  hash($ci)
+  $ci
 
 proc id(c: NimNode): ConceptId =
   c.conceptInfo.toId
