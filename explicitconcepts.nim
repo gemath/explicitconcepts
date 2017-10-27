@@ -80,56 +80,53 @@ const
   explFmt = "explicit: $#"
 
 type
-  ConceptId = tuple[sym, def: NimNode]
+  ConceptInfo = tuple[sym, def: NimNode]
+  ConceptId = Hash
+  ConceptCompanion[id: static[ConceptId]] = distinct auto
 
-  # TODO: can ConceptId itself be used here instead of its hash?
-  ConceptCompanion[id: static[Hash]] = distinct auto
+proc`$`(cie: ConceptInfo): string =
+  cie.def.lineInfo & "::" & cie.sym.treeRepr
 
-proc`$`(cie: ConceptId): string =
-  #cie.sym.treeRepr & " | " & cie.def.treeRepr
-  cie.sym.treeRepr & cie.def.lineInfo
-
-proc resolveConcept(cid: ConceptId): ConceptId =
-  var ti = getImpl(cid.def.symbol)
+proc conceptInfo(ci: ConceptInfo): ConceptInfo =
+  var ti = getImpl(ci.def.symbol)
 
   if not ti.findChild(nnkBracketExpr == it.kind).isNil:
-    error(implFmt % "generic concepts are not yet supported.", cid.sym)
+    error(implFmt % "generic concepts are not yet supported.", ci.sym)
 
   case ti[2].kind
   of nnkSym:          # type alias: resolve original type instead.
-    (ti[2], ti[2]).resolveConcept
+    (ti[2], ti[2]).conceptInfo
   of nnkDistinctTy:   # distinct type: resolve original type with distinct name.
-    (cid.sym, ti[2][0]).resolveConcept
+    (ci.sym, ti[2][0]).conceptInfo
   of nnkTypeClassTy:  # actual concept definition: return it.
-    (cid.sym, ti)
+    (ci.sym, ti)
   else:
-    error(implFmt % "concept expected.", cid.sym)
+    error(implFmt % "concept expected.", ci.sym)
     (nil, nil)
 
-proc structuredId(c: NimNode): ConceptId =
+proc conceptInfo(c: NimNode): ConceptInfo =
   # Returns a unique id for the passed concept symbol node.
-  (c, c).resolveConcept
+  (c, c).conceptInfo
 
-proc id(c: NimNode): Hash =
-  var sid = c.structuredId
+proc toId(ci: ConceptInfo): ConceptId =
+  hash($ci)
 
-  #echo $c.symbol & " -> " & $sid.sym.symbol & ": " & sid.def.lineInfo
-
-  hash($sid)
+proc id(c: NimNode): ConceptId =
+  c.conceptInfo.toId
 
 template implProcCall(c, t: untyped): untyped =
   implementedBy(c, t)
 
-template flagProcDef(t: untyped, cId: Hash): untyped =
+template flagProcDef(t: untyped, cid: ConceptId): untyped =
   var m = magic
 
   # The existence of this proc signals an ``implemements``-relation.
   proc `impl m`*(Ty: typedesc[t], Co: typedesc[ConceptCompanion[cid]])
     {.compileTime.} = discard
 
-template flagProcCall(t: untyped, cId: Hash): untyped =
+template flagProcCall(t: untyped, cid: ConceptId): untyped =
   var m = magic
-  `impl m`(t, ConceptCompanion[cId])
+  `impl m`(t, ConceptCompanion[cid])
 
 macro checkImplements*(t, c: typed): untyped =
   ## Produces the code to check wether there is an ``implemements``-relation
@@ -157,7 +154,7 @@ template explConcDef(co, standIn): untyped =
     c is standIn
     checkImplements(T, standIn)
 
-template procDef(cid: Hash, t: typed, warn: bool): untyped =
+template procDef(cid: ConceptId, t: typed, warn: bool): untyped =
   when compiles(flagProcCall(t, cid)):
     when warn:
       {.warning: implFmt % "ignored redundant statement.".}
@@ -168,11 +165,11 @@ macro implementedBy*(c, t: typed): typed =
   ## Establishes an ``implements``-relation between the type and the
   ## concept given by the symbol nodes ``t`` and ``c``, respectively.
   var
-    csid = c.structuredId
-    standInConc = standIn(c, csid.def)
+    ci = c.conceptInfo
+    standInConc = standIn(c, ci.def)
 
   result = newStmtList()
-  result.add getAst procDef(hash($csid), t, true)
+  result.add getAst procDef(ci.toId, t, true)
   if standInConc.isNil:
     warning implFmt %
       $c.symbol & " is not explicit, the implements-relation will not" &

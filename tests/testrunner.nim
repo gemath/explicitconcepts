@@ -1,4 +1,7 @@
-import test, explicitconcepts
+import test
+
+# For ``implements`` and ``chwckImplements``.
+import explicitconcepts
 
 type
   C = concept c
@@ -6,8 +9,9 @@ type
 
 run()
 
-# Implements-relationships and "explicitness" of concepts are public and can
-# be provided by imported modules. Qualified identifiers are supported.
+# Implements-relationships and "explicitness" of concepts are public, check
+# wether they are  imported from another module. Qualified identifiers should
+# work as expected.
 assert(X is test.ExC == true)
 assert(Yn is ExC == false)
 
@@ -17,4 +21,6 @@ assert(X is C == true)
 # .. which has no implements-relation to X ..
 assert(X.checkImplements(C) == false)
 
-# .. until 
+# .. until one is established locally.
+implements C: X
+assert(X.checkImplements(C) == true)
