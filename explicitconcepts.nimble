@@ -14,5 +14,6 @@ requires "nim >= 0.17.2"
 
 task test, "run the tests":
   --path: "../"
+ #--d: release
   --run
   setCommand "c", "tests/testrunner.nim"
