@@ -118,7 +118,7 @@ proc id(c: NimNode): ConceptId =
   c.conceptInfo.toId
 
 template implProcCall(c, t: untyped): untyped =
-  implementedBy(c, t)
+  implementedBy9F08B7C91364CDF2(c, t)
 
 template flagProcDef(t: untyped, cid: ConceptId): untyped =
   var m = magic
@@ -152,7 +152,7 @@ proc standIn(sym, def: NimNode): NimNode =
           if $sym.symbol & magic == $lst.symbol:
             result = lst
 
-template explConcDef(co, standIn): untyped =
+template explConcDef(co, standIn: untyped): untyped =
   type co = concept c, type T
     c is standIn
     checkImplements(T, standIn)
@@ -160,11 +160,11 @@ template explConcDef(co, standIn): untyped =
 template procDef(cid: ConceptId, t: typed, warn: bool): untyped =
   when compiles(flagProcCall(t, cid)):
     when warn:
-      {.warning: implFmt % "ignored redundant statement.".}
+      {.warning: implFmt % "redundant statement is ignored.".}
   else:
     flagProcDef(t, cid)
 
-macro implementedBy*(c, t: typed): typed =
+macro implementedBy9F08B7C91364CDF2*(c, t: typed): typed =
   ## Establishes an ``implements``-relation between the type and the
   ## concept given by the symbol nodes ``t`` and ``c``, respectively.
   var
@@ -184,41 +184,58 @@ template checkMatch(c, t: untyped): untyped =
   when not(t is c):
     {.fatal: explFmt % "concept not satisfied.".}
 
-macro implements*(args: varargs[untyped]): untyped =
-  ## Establishes an ``implements``-relation between concepts given
-  ## as leading arguments and an existing type or the types defined in a type
-  ## section given as a trailing block argument.
+proc implStmts(args, t: NimNode): NimNode =
   result = newStmtList()
-  args.expectKind(nnkArglist)
-  var stmts = args.findChild(nnkStmtList == it.kind)
-  if isNil(stmts):
-    error(implFmt % "implementing type expected.", args)
-  if nnkTypeSection == stmts[0].kind:
-    stmts = stmts[0]
-    result.add stmts
-  if args.len == 0 or nnkStmtList == args[0].kind:
-    error(implFmt % "error in concepts list.", args)
   for c in args:
     if c.kind in {nnkStmtList}:
       break
-    if stmts.len == 0:
-      error(implFmt % "error in implementations spec.", stmts)
-    for i in stmts:
-      var im = if nnkTypeDef == i.kind: i[0] else: i
-      result.add getAst implProcCall(c, im)
-      result.add getAst checkMatch(c, im)
+    result.add getAst implProcCall(c, t)
+    result.add getAst checkMatch(c, t)
+
+macro implements*(args: varargs[untyped]): untyped =
+  ## Establishes an ``implements``-relation between concepts given
+  ## as leading arguments and an existing type or the types defined in type
+  ## sections given as a trailing block argument.
+  result = newStmtList()
+  args.expectKind(nnkArglist)
+  if args.len == 0 or nnkStmtList == args[0].kind:
+    error(implFmt % "implemented concepts expected.", args)
+  var stmts = args.findChild(nnkStmtList == it.kind)
+  if isNil(stmts) or stmts.len == 0:
+    error(implFmt % "implementing type or type sections expected.", args)
+  if stmts.len == 1 and nnkTypeSection != stmts[0].kind:
+    result.add implStmts(args, stmts[0])
+  else:
+    for ts in stmts:
+      ts.expectKind(nnkTypeSection)
+      result.add ts
+      for td in ts:
+        result.add implStmts(args, td[0])
+
+template checkConceptCall(c: untyped): untyped =
+  checkConcept9F08B7C91364CDF2(c)
 
 macro explicit*(args: untyped): untyped =
-  ## Makes the concepts defined in the type section passed as a block argument
+  ## Makes the concepts defined in the type sections passed as a block argument
   ## explicit.
-  result = args
   args.expectKind(nnkStmtList)
-  args[0].expectKind(nnkTypeSection)
-  for td in args[0]:
-    if td.findChild(nnkTypeClassTy == it.kind and
-        nnkArglist == it[0].kind).isNil:
-      error(explFmt % "not a concept.", td[0])
-    var
-      sc = td[0].copy
-    td[0].basename = $td[0].basename & magic
-    result.add getAst explConcDef(sc, td[0].basename)
+  if args.len == 0:
+    error(explFmt % "concept definitions expected.", args)
+  result = args
+  for ts in result:
+    ts.expectKind(nnkTypeSection)
+    var i = 0
+    while i < ts.len:
+      var td = ts[i]
+
+      if nnkIdent == td.last.kind:
+        error(explFmt % "concept aliases cannot be explicit.", args)
+
+      var scd = td[0].copy
+      td[0].basename = $td[0].basename & magic
+      i.inc
+      ts.insert(i, getAst(explConcDef(scd, td[0].basename))[0][0])
+      i.inc
+
+      # TODO: implemement concept check
+      #result.add getAst checkConceptAst(td[0].basename)

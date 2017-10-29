@@ -1,4 +1,4 @@
-import explicitconcepts
+import explicitconcepts, macros
 
 type
   C = concept c
@@ -8,8 +8,11 @@ type
 
   Cd = distinct C
 
-  Cr = concept c of C
+  Crt = concept c of C
     c is C
+
+  Cr = concept c of C
+    c.x is float
 
   X* = object of RootObj
     n*: int
@@ -25,8 +28,7 @@ type
 explicit:
   type
     # The explicit version of an existing concept under a new name.
-    ExC* = concept c of C
-      c is C
+    ExC* = distinct C
 
     ExD = concept d
       d.x is float
@@ -47,17 +49,25 @@ implements ExD:
     Y = object of RootObj
       x: float
 
-type
-  Yn* = object of Y
-    n*: int
-
 # This blatant lie (X doesn't even satisfy ExD) should explode:
 # TODO: how do I test this?
-#assert(not compiles(implements ExD: X), "this should not compile!")
+#assert(not compiles(implements ExD: X), "This should not compile!")
 
 # Generic type instances are supported as implementers. Generic concepts are
 # not yet supported.
 implements ExD: Z[float]
+
+type
+  Yn* = object of Y
+    n*: int
+
+  ExDr = concept d of ExD
+    d.n is int
+
+explicit:
+  type
+    ExDrx = concept d of ExD
+      d.n is int
 
 proc run*() =
   # Make sure that implements-relationships registered correctly ..
@@ -82,13 +92,21 @@ proc run*() =
   assert(Xd.checkImplements(C) == false)
 
   # .. or refinements of an implemented concept.
-  assert(X.checkImplements(Cr) == false)
-
-  # The additional stand-in concept generated for an explicit concept (for
-  # internal use, note the "magic" postfix).
-  assert(X.checkImplements(ExC9F08B7C91364CDF2) == true)
+  assert(X.checkImplements(Crt) == false)
+  assert(Xx.checkImplements(ExDr) == false)
 
   # Both types technically satisfy the concept, but the concept is explicit and
   # only X has an implements-relationship with it.
-  assert(X is ExC == true)
-  assert(Yn is ExC == false)
+  assert(X is ExC)
+  assert(not(Yn is ExC))
+
+  # Also, being explicit is not just passed on to a refined concept ..
+  assert(Xx is ExDr)
+
+  # .. but the refined concept itself has to be made explicit.
+  assert(not(Xx is ExDrx))
+
+  # 
+  # The additional stand-in concept generated for an explicit concept (for
+  # internal use, note the "magic" postfix).
+  assert(X.checkImplements(ExC9F08B7C91364CDF2) == true)
