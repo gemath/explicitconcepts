@@ -72,7 +72,7 @@
 ##
 ## For details see the source files in the ``tests`` directory.
 
-import strutils, macros
+import strutils, macros, typetraits
 
 const
   magic = "9F08B7C91364CDF2"
@@ -157,6 +157,8 @@ proc standIn(sym, def: NimNode): NimNode =
       if nnkCall == lst.kind:
         if "checkImplements" == $lst[0].symbol:
           lst = lst.last
+
+          # TODO: Is eqIdent even required for two symbols?
           if eqIdent($sym.symbol & magic, $lst.symbol):
             result = lst
 
@@ -168,7 +170,8 @@ template explConcDef(co, standIn: untyped): untyped =
 template procDef(cid: ConceptId, t: typed, warn: bool): untyped =
   when compiles(flagProcCall(t, cid)):
     when warn:
-      {.warning: implFmt % "redundant statement is ignored.".}
+      {.warning: implFmt % "redundant implements-relation with " &
+        t.name & " is ignored.".}
   else:
     flagProcDef(t, cid)
 
@@ -184,8 +187,8 @@ macro implementedBy9F08B7C91364CDF2*(c, t: typed): typed =
   result.add getAst procDef(ci.toId, t, true)
   if standInConc.isNil:
     warning implFmt %
-      $c.symbol & " is not explicit, the implements-relation will not" &
-      " be checked on use of implementing type."
+      $c.symbol & " is not explicit, the implements-relation with " &
+      $t.symbol & " will not be checked from here onwards."
   else:
     result.add getAst procDef(standInConc.id, t, false)
 
