@@ -100,11 +100,12 @@ proc conceptInfo(ci: ConceptInfo): ConceptInfo =
   of nnkDistinctTy:
     # distinct type: keep original distinct name, resolve original type.
     (ci.sym, (ci.sym, ti[2][0]).conceptInfo.def)
-  of nnkTypeClassTy:  # actual concept definition: return it.
+  of nnkTypeClassTy:
+    # actual concept definition: return it.
     (ci.sym, ti)
   else:
-    error(implFmt % "concept expected.", ci.sym)
-    (nil, nil)
+    # not even a concept.
+    (ci.sym, nil)
 
 proc conceptInfo(c: NimNode): ConceptInfo =
   # Returns a tuple containing the resolved actual symbol and definition nodes
@@ -115,7 +116,10 @@ proc toId(ci: ConceptInfo): ConceptId =
   $ci
 
 proc id(c: NimNode): ConceptId =
-  c.conceptInfo.toId
+  let ci = c.conceptInfo
+  if ci.def.isNil:
+    error(implFmt % $c.symbol & " is not a concept.", c)
+  ci.toId
 
 template implProcCall(c, t: untyped): untyped =
   implementedBy9F08B7C91364CDF2(c, t)
@@ -167,9 +171,10 @@ template procDef(cid: ConceptId, t: typed, warn: bool): untyped =
 macro implementedBy9F08B7C91364CDF2*(c, t: typed): typed =
   ## Establishes an ``implements``-relation between the type and the
   ## concept given by the symbol nodes ``t`` and ``c``, respectively.
-  var
-    ci = c.conceptInfo
-    standInConc = standIn(c, ci.def)
+  let ci = c.conceptInfo
+  if ci.def.isNil:
+    error(implFmt % $c.symbol & " is not a concept.", c)
+  let standInConc = standIn(c, ci.def)
 
   result = newStmtList()
   result.add getAst procDef(ci.toId, t, true)
@@ -212,8 +217,15 @@ macro implements*(args: varargs[untyped]): untyped =
       for td in ts:
         result.add implStmts(args, td[0])
 
-template checkConceptCall(c: untyped): untyped =
-  checkConcept9F08B7C91364CDF2(c)
+macro checkConc9F08B7C91364CDF2*(c, sc: typed): typed =
+  let sci = sc.conceptInfo
+  if sci.def.isNil:
+    error(explFmt % $c.symbol & " is not a concept.", c)
+  if sc.symbol != sci.sym.symbol:
+    error(explFmt % $c.symbol & " is an alias and cannot be explicit.", c)
+
+template checkConceptCall(c, sc: untyped): untyped =
+  checkConc9F08B7C91364CDF2(c, sc)
 
 macro explicit*(args: untyped): untyped =
   ## Makes the concepts defined in the type sections passed as a block argument
@@ -221,21 +233,13 @@ macro explicit*(args: untyped): untyped =
   args.expectKind(nnkStmtList)
   if args.len == 0:
     error(explFmt % "concept definitions expected.", args)
-  result = args
-  for ts in result:
+  result = newStmtList()
+  for ts in args:
     ts.expectKind(nnkTypeSection)
-    var i = 0
-    while i < ts.len:
-      var td = ts[i]
-
-      if nnkIdent == td.last.kind:
-        error(explFmt % "concept aliases cannot be explicit.", args)
-
-      var scd = td[0].copy
+    for td in ts:
+      let
+        c = td[0].copy
       td[0].basename = $td[0].basename & magic
-      i.inc
-      ts.insert(i, getAst(explConcDef(scd, td[0].basename))[0][0])
-      i.inc
-
-      # TODO: implemement concept check
-      #result.add getAst checkConceptAst(td[0].basename)
+      result.add newTree(nnkTypeSection, td)
+      result.add getAst(explConcDef(c, td[0].basename))[0]
+      result.add getAst(checkConceptCall(c.basename, td[0].basename))[0]
