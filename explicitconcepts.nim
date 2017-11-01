@@ -80,13 +80,17 @@ const
   explFmt = "explicit: $#"
 
 type
-  ConceptInfo = tuple[sym, def: NimNode]
-  ConceptId = string
+  ConceptId = tuple[loc: string, sym: string]
   ConceptCompanion[id: static[ConceptId]] = distinct auto
+  ConceptInfo = tuple[sym, def: NimNode]
 
-proc`$`(cie: ConceptInfo): string =
-  cie.def.lineInfo & "::" & cie.sym.treeRepr
+proc`$`(ci: ConceptInfo): string =
+  ci.def.lineInfo & "::" & ci.sym.treeRepr
 
+proc toConceptId(ci: ConceptInfo): ConceptId =
+  (ci.def.lineInfo, ci.sym.treeRepr)
+  #(ci.def.lineInfo, $ci.sym.symbol)
+ 
 proc conceptInfo(ci: ConceptInfo): ConceptInfo =
   var ti = getImpl(ci.def.symbol)
 
@@ -113,7 +117,7 @@ proc conceptInfo(c: NimNode): ConceptInfo =
   (c, c).conceptInfo
 
 proc toId(ci: ConceptInfo): ConceptId =
-  $ci
+  ci.toConceptId
 
 proc id(c: NimNode): ConceptId =
   let ci = c.conceptInfo
@@ -153,7 +157,7 @@ proc standIn(sym, def: NimNode): NimNode =
       if nnkCall == lst.kind:
         if "checkImplements" == $lst[0].symbol:
           lst = lst.last
-          if $sym.symbol & magic == $lst.symbol:
+          if eqIdent($sym.symbol & magic, $lst.symbol):
             result = lst
 
 template explConcDef(co, standIn: untyped): untyped =
