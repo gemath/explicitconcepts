@@ -91,6 +91,9 @@ proc toConceptId(ci: ConceptInfo): ConceptId =
   (ci.def.lineInfo, ci.sym.treeRepr)
   #(ci.def.lineInfo, $ci.sym.symbol)
  
+proc standInName(base: string): string =
+  base & magic
+
 proc conceptInfo(ci: ConceptInfo): ConceptInfo =
   var ti = getImpl(ci.def.symbol)
 
@@ -158,8 +161,8 @@ proc standIn(sym, def: NimNode): NimNode =
         if "checkImplements" == $lst[0].symbol:
           lst = lst.last
 
-          # TODO: Is eqIdent even required for two symbols?
-          if eqIdent($sym.symbol & magic, $lst.symbol):
+          # TODO: Is eqIdent even required for comparing two symbols?
+          if eqIdent(standInName($sym.symbol), $lst.symbol):
             result = lst
 
 template explConcDef(co, standIn: untyped): untyped =
@@ -196,8 +199,8 @@ template checkMatch(c, t: untyped): untyped =
   when not(t is c):
     {.fatal: explFmt % "concept not satisfied.".}
 
-proc implStmts(args, t: NimNode): NimNode =
-  result = newStmtList()
+proc implStmts(args, t: NimNode): seq[NimNode] =
+  result = @[]
   for c in args:
     if c.kind in {nnkStmtList}:
       break
@@ -216,7 +219,7 @@ macro implements*(args: varargs[untyped]): untyped =
   if isNil(stmts) or stmts.len == 0:
     error(implFmt % "implementing type or type sections expected.", args)
   if stmts.len == 1 and nnkTypeSection != stmts[0].kind:
-    result.add implStmts(args, stmts[0])
+    result.add implStmts(args, stmts[0]):
   else:
     for ts in stmts:
       ts.expectKind(nnkTypeSection)
@@ -246,7 +249,7 @@ macro explicit*(args: untyped): untyped =
     for td in ts:
       let
         c = td[0].copy
-      td[0].basename = $td[0].basename & magic
+      td[0].basename = standInName($td[0].basename)
       result.add newTree(nnkTypeSection, td)
       result.add getAst(explConcDef(c, td[0].basename))[0]
       result.add getAst(checkConceptCall(c.basename, td[0].basename))[0]

@@ -49,10 +49,6 @@ implements ExD:
     Y = object of RootObj
       x: float
 
-# This blatant lie (X doesn't even satisfy ExD) should explode:
-# TODO: how do I test this?
-#assert(not compiles(implements ExD: X), "This should not compile!")
-
 # Generic type instances are supported as implementers. Generic concepts are
 # not yet supported.
 implements ExD: Z[float]
@@ -77,7 +73,7 @@ proc run*() =
   assert(Y.checkImplements(ExD) == true)
   assert(Z[float].checkImplements(ExD) == true)
 
-  # .. and that there is no false positive.
+  # .. and that thiis is no false positive.
   assert(Yn.checkImplements(C) == false)
 
   # Implements-relationships extend to aliases ..
@@ -95,8 +91,25 @@ proc run*() =
   assert(X.checkImplements(Crt) == false)
   assert(Xx.checkImplements(ExDr) == false)
 
-  # Both types technically satisfy the concept, but the concept is explicit and
-  # only X has an implements-relationship with it.
+  # X is not a concept.
+  let comp1 = compiles:
+    implements X: Xx
+  assert(not comp1)
+
+  # X does not satisfy ExD.
+  # TODO: why does this make the compiler just quit with error code 1?
+  #let comp2 = compiles:
+  #  implements ExD: X
+  #assert(not comp2)
+
+  # Aliases cannot be explicit.
+  let comp3 = compiles:
+    explicit:
+      type ExCa = ExC
+  assert(not comp3)
+
+  # These two types technically satisfy the concept, but the concept is
+  # explicit and only X has an implements-relationship with it.
   assert(X is ExC)
   assert(not(Yn is ExC))
 
