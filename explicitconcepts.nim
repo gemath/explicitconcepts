@@ -72,40 +72,35 @@
 ##
 ## For details see the source files in the ``tests`` directory.
 
-import strutils, macros, typetraits
+import strutils, macros
 
 const
   magic = "9F08B7C91364CDF2"
-  implFmt = "implements: $#"
-  explFmt = "explicit: $#"
 
 type
   ConceptId = tuple[loc: string, sym: string]
   ConceptCompanion[id: static[ConceptId]] = distinct auto
   ConceptInfo = tuple[sym, def: NimNode]
 
-proc`$`(ci: ConceptInfo): string =
-  ci.def.lineInfo & "::" & ci.sym.treeRepr
-
 proc toConceptId(ci: ConceptInfo): ConceptId =
-  (ci.def.lineInfo, ci.sym.treeRepr)
-  #(ci.def.lineInfo, $ci.sym.symbol)
+  #(ci.def.lineInfo, ci.sym.treeRepr)
+  (ci.def.lineInfo, ci.sym.repr)
  
 proc standInName(base: string): string =
   base & magic
 
 proc conceptInfo(ci: ConceptInfo): ConceptInfo =
-  var ti = getImpl(ci.def.symbol)
+  let ti = getImpl(ci.def.symbol)
 
   if not ti.findChild(nnkBracketExpr == it.kind).isNil:
-    error(implFmt % "generic concepts are not yet supported.", ci.sym)
+    error("generic concepts are not yet supported.", ci.sym)
 
   case ti[2].kind
   of nnkSym:
-    # type alias: query original symbol and definition instead.
+    # type alias: resolve original symbol and definition instead.
     (ti[2], ti[2]).conceptInfo
   of nnkDistinctTy:
-    # distinct type: keep original distinct name, resolve original type.
+    # distinct type: keep the distinct name, resolve original type.
     (ci.sym, (ci.sym, ti[2][0]).conceptInfo.def)
   of nnkTypeClassTy:
     # actual concept definition: return it.
@@ -125,21 +120,21 @@ proc toId(ci: ConceptInfo): ConceptId =
 proc id(c: NimNode): ConceptId =
   let ci = c.conceptInfo
   if ci.def.isNil:
-    error(implFmt % $c.symbol & " is not a concept.", c)
+    error($c.symbol & " is not a concept.", c)
   ci.toId
 
 template implProcCall(c, t: untyped): untyped =
   implementedBy9F08B7C91364CDF2(c, t)
 
 template flagProcDef(t: untyped, cid: ConceptId): untyped =
-  var m = magic
+  let m = magic
 
   # The existence of this proc signals an ``implemements``-relation.
   proc `impl m`*(Ty: typedesc[t], Co: typedesc[ConceptCompanion[cid]])
     {.compileTime.} = discard
 
 template flagProcCall(t: untyped, cid: ConceptId): untyped =
-  var m = magic
+  let m = magic
   `impl m`(t, ConceptCompanion[cid])
 
 macro checkImplements*(t, c: typed): untyped =
@@ -170,11 +165,11 @@ template explConcDef(co, standIn: untyped): untyped =
     c is standIn
     checkImplements(T, standIn)
 
-template procDef(cid: ConceptId, t: typed, warn: bool): untyped =
+template procDef(cid: ConceptId, t: typed, warn: bool, cName: string): untyped =
   when compiles(flagProcCall(t, cid)):
     when warn:
-      {.warning: implFmt % "redundant implements-relation with " &
-        t.name & " is ignored.".}
+      {.warning: "redundant implements-relation for " &
+        cName & " is ignored.".}
   else:
     flagProcDef(t, cid)
 
@@ -183,29 +178,29 @@ macro implementedBy9F08B7C91364CDF2*(c, t: typed): typed =
   ## concept given by the symbol nodes ``t`` and ``c``, respectively.
   let ci = c.conceptInfo
   if ci.def.isNil:
-    error(implFmt % $c.symbol & " is not a concept.", c)
+    error($c.symbol & " is not a concept.", c)
   let standInConc = standIn(c, ci.def)
 
   result = newStmtList()
-  result.add getAst procDef(ci.toId, t, true)
+  result.add getAst procDef(ci.toId, t, true, c.repr)
   if standInConc.isNil:
-    warning implFmt %
-      $c.symbol & " is not explicit, the implements-relation with " &
-      $t.symbol & " will not be checked from here onwards."
+    warning(("$# is not explicit, the implements-relation with $# will not " &
+      "be checked from here onwards.") % [c.repr, t.repr])
   else:
-    result.add getAst procDef(standInConc.id, t, false)
+    result.add getAst procDef(standInConc.id, t, false, standInConc.repr)
 
-template checkMatch(c, t: untyped): untyped =
+template checkMatch(c, t: untyped; msg: string): untyped =
   when not(t is c):
-    {.fatal: explFmt % "concept not satisfied.".}
+    {.fatal: msg.}
 
-proc implStmts(args, t: NimNode): seq[NimNode] =
+proc implStmts(args, t: NimNode): seq[NimNode] {.compileTime.} =
   result = @[]
   for c in args:
     if c.kind in {nnkStmtList}:
       break
-    result.add getAst implProcCall(c, t)
-    result.add getAst checkMatch(c, t)
+    result.add getAst(implProcCall(c, t))[0]
+    result.add getAst(checkMatch(c, t,
+      "$# does not satisfy $#." % [t.repr, c.repr]))[0]
 
 macro implements*(args: varargs[untyped]): untyped =
   ## Establishes an ``implements``-relation between concepts given
@@ -214,12 +209,12 @@ macro implements*(args: varargs[untyped]): untyped =
   result = newStmtList()
   args.expectKind(nnkArglist)
   if args.len == 0 or nnkStmtList == args[0].kind:
-    error(implFmt % "implemented concepts expected.", args)
-  var stmts = args.findChild(nnkStmtList == it.kind)
+    error("implemented concepts expected.", args)
+  let stmts = args.findChild(nnkStmtList == it.kind)
   if isNil(stmts) or stmts.len == 0:
-    error(implFmt % "implementing type or type sections expected.", args)
+    error("implementing type or type sections expected.", args)
   if stmts.len == 1 and nnkTypeSection != stmts[0].kind:
-    result.add implStmts(args, stmts[0]):
+    result.add implStmts(args, stmts[0])
   else:
     for ts in stmts:
       ts.expectKind(nnkTypeSection)
@@ -230,9 +225,9 @@ macro implements*(args: varargs[untyped]): untyped =
 macro checkConc9F08B7C91364CDF2*(c, sc: typed): typed =
   let sci = sc.conceptInfo
   if sci.def.isNil:
-    error(explFmt % $c.symbol & " is not a concept.", c)
+    error($c.symbol & " is not a concept.", c)
   if sc.symbol != sci.sym.symbol:
-    error(explFmt % $c.symbol & " is an alias and cannot be explicit.", c)
+    error($c.symbol & " is an alias and cannot be explicit.", c)
 
 template checkConceptCall(c, sc: untyped): untyped =
   checkConc9F08B7C91364CDF2(c, sc)
@@ -242,7 +237,7 @@ macro explicit*(args: untyped): untyped =
   ## explicit.
   args.expectKind(nnkStmtList)
   if args.len == 0:
-    error(explFmt % "concept definitions expected.", args)
+    error("concept definitions expected.", args)
   result = newStmtList()
   for ts in args:
     ts.expectKind(nnkTypeSection)

@@ -1,4 +1,4 @@
-import explicitconcepts, macros
+import explicitconcepts
 
 type
   C = concept c
@@ -33,14 +33,14 @@ explicit:
     ExD = concept d
       d.x is float
 
-# Defines implements-relationships for an existing type: X implements C and
+# Defines implements-relations for an existing type: X implements C and
 # ExC. C is not explicit, so the compiler will warn about it.
 implements C, ExC: X
 
 # Redundant implements-statements are ignored and warned about.
 implements ExC: X
 
-# Defines implements-relationships for new types: Xx and Y implement ExD.
+# Defines implements-relations for new types: Xx and Y implement ExD.
 implements ExD:
   type
     Xx = object of X
@@ -66,17 +66,17 @@ explicit:
       d.n is int
 
 proc run*() =
-  # Make sure that implements-relationships registered correctly ..
+  # Make sure implements-relations registered correctly ..
   assert(X.checkImplements(C) == true)
   assert(X.checkImplements(ExC) == true)
   assert(Xx.checkImplements(ExD) == true)
   assert(Y.checkImplements(ExD) == true)
   assert(Z[float].checkImplements(ExD) == true)
 
-  # .. and that thiis is no false positive.
+  # .. and that this is no false positive.
   assert(Yn.checkImplements(C) == false)
 
-  # Implements-relationships extend to aliases ..
+  # Implements-relations extend to aliases ..
   assert(X.checkImplements(Ca) == true)
   assert(Xa.checkImplements(C) == true)
 
@@ -109,7 +109,7 @@ proc run*() =
   assert(not comp3)
 
   # These two types technically satisfy the concept, but the concept is
-  # explicit and only X has an implements-relationship with it.
+  # explicit and only X has an implements-relation with it.
   assert(X is ExC)
   assert(not(Yn is ExC))
 
