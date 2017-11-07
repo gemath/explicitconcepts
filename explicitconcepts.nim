@@ -1,5 +1,5 @@
 #[
-   explicitconcepts.nim
+   Explicit Concepts.
    
    Copyright 2017 Gerd Mathar
 
@@ -123,9 +123,6 @@ proc id(c: NimNode): ConceptId =
     error($c.symbol & " is not a concept.", c)
   ci.toId
 
-template implProcCall(c, t: untyped): untyped =
-  implementedBy9F08B7C91364CDF2(c, t)
-
 template flagProcDef(t: untyped, cid: ConceptId): untyped =
   let m = magic
 
@@ -189,18 +186,17 @@ macro implementedBy9F08B7C91364CDF2*(c, t: typed): typed =
   else:
     result.add getAst procDef(standInConc.id, t, false, standInConc.repr)
 
-template checkMatch(c, t: untyped; msg: string): untyped =
-  when not(t is c):
-    {.fatal: msg.}
-
 proc implStmts(args, t: NimNode): seq[NimNode] {.compileTime.} =
   result = @[]
   for c in args:
+    let msg = "$# does not satisfy $#." % [t.repr, c.repr]
     if c.kind in {nnkStmtList}:
       break
-    result.add getAst(implProcCall(c, t))[0]
-    result.add getAst(checkMatch(c, t,
-      "$# does not satisfy $#." % [t.repr, c.repr]))[0]
+    result.add quote do:
+      implementedBy9F08B7C91364CDF2(`c`, `t`)
+    result.add quote do:
+      when not(`t` is `c`):
+        {.fatal: `msg`.}
 
 macro implements*(args: varargs[untyped]): untyped =
   ## Establishes an ``implements``-relation between concepts given
