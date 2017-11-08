@@ -181,7 +181,7 @@ macro implementedBy9F08B7C91364CDF2*(c, t: typed): typed =
   result = newStmtList()
   result.add getAst procDef(ci.toId, t, true, c.repr)
   if standInConc.isNil:
-    warning(("$# is not explicit, the implements-relation with $# will not " &
+    warning(("$# is implicit, the implements-relation with $# will not " &
       "be checked from here onwards.") % [c.repr, t.repr])
   else:
     result.add getAst procDef(standInConc.id, t, false, standInConc.repr)
