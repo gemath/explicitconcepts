@@ -83,13 +83,14 @@ type
   ConceptInfo = tuple[sym, def: NimNode]
 
 proc toConceptId(ci: ConceptInfo): ConceptId =
-  #(ci.def.lineInfo, ci.sym.treeRepr)
+  # TODO: probably include def itself for generic instantiations.
   (ci.def.lineInfo, ci.sym.repr)
  
 proc standInName(base: string): string =
   base & magic
 
 proc conceptInfo(ci: ConceptInfo): ConceptInfo =
+  # TODO: use getType to resolve aliases, then getImpl.
   let ti = getImpl(ci.def.symbol)
 
   if not ti.findChild(nnkBracketExpr == it.kind).isNil:
@@ -228,14 +229,14 @@ macro checkConc9F08B7C91364CDF2*(c, sc: typed): typed =
 template checkConceptCall(c, sc: untyped): untyped =
   checkConc9F08B7C91364CDF2(c, sc)
 
-macro explicit*(args: untyped): untyped =
+proc expl(typeSects: NimNode): NimNode =
   ## Makes the concepts defined in the type sections passed as a block argument
   ## explicit.
-  args.expectKind(nnkStmtList)
-  if args.len == 0:
-    error("concept definitions expected.", args)
+  typeSects.expectKind(nnkStmtList)
+  if typeSects.len == 0:
+    error("concept definitions expected.", typeSects)
   result = newStmtList()
-  for ts in args:
+  for ts in typeSects:
     ts.expectKind(nnkTypeSection)
     for td in ts:
       let
@@ -244,3 +245,11 @@ macro explicit*(args: untyped): untyped =
       result.add newTree(nnkTypeSection, td)
       result.add getAst(explConcDef(c, td[0].basename))[0]
       result.add getAst(checkConceptCall(c.basename, td[0].basename))[0]
+
+macro explicit*(typeSects: untyped): untyped =
+  result = expl typeSects
+
+macro explicit*(typeSects, post: untyped): untyped =
+  result = expl typeSects
+  for stmt in post:
+    result.add stmt

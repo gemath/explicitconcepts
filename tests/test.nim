@@ -65,6 +65,13 @@ explicit:
     ExDrx = concept d of ExD
       d.n is int
 
+# An implements-relation to an explicit concept extends to all explicit base
+# concepts.
+#let comp4 = compiles:
+#  implements ExDrx: Yn
+#assert(comp4)
+#implements ExDrx: Yn
+
 proc run*() =
   # Make sure implements-relations registered correctly ..
   assert(X.checkImplements(C) == true)
@@ -118,6 +125,10 @@ proc run*() =
 
   # .. but the refined concept itself has to be made explicit.
   assert(not(Xx is ExDrx))
+
+  # An implements-relation to an explicit concept extends to all explicit base
+  # concepts.
+  #assert(Yn is ExD)
 
   # 
   # The additional stand-in concept generated for an explicit concept (for
