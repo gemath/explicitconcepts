@@ -65,13 +65,6 @@ explicit:
     ExDrx = concept d of ExD
       d.n is int
 
-# An implements-relation to an explicit concept extends to all explicit base
-# concepts.
-#let comp4 = compiles:
-#  implements ExDrx: Yn
-#assert(comp4)
-#implements ExDrx: Yn
-
 proc run*() =
   # Make sure implements-relations registered correctly ..
   assert(X.checkImplements(C) == true)
@@ -99,21 +92,21 @@ proc run*() =
   assert(Xx.checkImplements(ExDr) == false)
 
   # X is not a concept.
-  let comp1 = compiles:
+  assert(not(compiles do:
     implements X: Xx
-  assert(not comp1)
+  ))
 
   # X does not satisfy ExD.
   # TODO: why does this make the compiler just quit with error code 1?
-  #let comp2 = compiles:
+  #assert(not(compiles do:
   #  implements ExD: X
-  #assert(not comp2)
+  #))
 
   # Aliases cannot be explicit.
-  let comp3 = compiles:
+  assert(not(compiles do:
     explicit:
       type ExCa = ExC
-  assert(not comp3)
+  ))
 
   # These two types technically satisfy the concept, but the concept is
   # explicit and only X has an implements-relation with it.
@@ -128,6 +121,9 @@ proc run*() =
 
   # An implements-relation to an explicit concept extends to all explicit base
   # concepts.
+  #assert(compiles do:
+  #  implements ExDrx: Yn
+  #)
   #assert(Yn is ExD)
 
   # 
