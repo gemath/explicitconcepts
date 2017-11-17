@@ -91,37 +91,24 @@ proc standInName(base: string): string =
 
 proc conceptInfo(ci: ConceptInfo): ConceptInfo =
   # TODO: use getType to resolve aliases, then getImpl.
+  let ti = getImpl(ci.def.symbol)
 
-  echo "----------- input"
-  echo ci.sym.treeRepr
-  echo ci.def.treeRepr
+  if not ti.findChild(nnkBracketExpr == it.kind).isNil:
+    error("generic concepts are not yet supported.", ci.sym)
 
-#  if not ti.findChild(nnkBracketExpr == it.kind).isNil:
-#    error("generic concepts are not yet supported.", ci.sym)
-
-  var ty = ci.def.getType
-
-  echo "def.getType: " & ty.treeRepr
-
-  if "typeDesc" == $ty[0].symbol:
-    ty = ty[1]
-  result = case ty.kind
+  case ti[2].kind
   of nnkSym:
+    # type alias: resolve original symbol and definition instead.
+    (ti[2], ti[2]).conceptInfo
+  of nnkDistinctTy:
     # distinct type: keep the distinct name, resolve original type.
-    let ti = getImpl(ty.symbol)
     (ci.sym, (ci.sym, ti[2][0]).conceptInfo.def)
-  of nnkBracketExpr:
+  of nnkTypeClassTy:
     # actual concept definition: return it.
-    let ti = getImpl(ci.def.symbol)
     (ci.sym, ti)
   else:
     # not even a concept.
     (ci.sym, nil)
-
-  echo "----------- output"
-  echo result.sym.treeRepr
-  echo result.def.treeRepr
-  echo "----------- end"
 
 proc conceptInfo(c: NimNode): ConceptInfo =
   # Returns a tuple containing the resolved actual symbol and definition nodes
