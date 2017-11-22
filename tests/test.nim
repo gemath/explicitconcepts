@@ -1,8 +1,4 @@
-import explicitconcepts, macros
-
-macro dumpTypedTree(body: typed): typed =
-  result = body
-  echo body.treeRepr
+import explicitconcepts
 
 type
   C = concept c
@@ -28,50 +24,21 @@ type
   Z[T] = object
     x: T
 
-#[
-dumpTypedTree:
-  type
-    ExD = concept d, type T9F08B7C91364CDF2
-      d.x is float
-      impl9F08B7C91364CDF2(T9F08B7C91364CDF2, ConceptCompanion[
-        ("test.nim(33, 4)", "ExD")])
-
-  type
-    Xx = object of X
-      x: float
-
-    Y = object of RootObj
-      x: float
-
-  when compiles(impl9F08B7C91364CDF2(Xx, ConceptCompanion[
-      ("test.nim(33, 4)", "ExD")])):
-    when 1:
-      {.warning: "redundant implements-relation for " & "ExD" &
-          " is ignored.".}
-  else:
-    proc impl9F08B7C91364CDF2*(Ty129087: typedesc[Xx]; Co129089: typedesc[
-        ConceptCompanion[("test.nim(33, 4)", "ExD")]]) =
-      discard
-
-  when not (Xx is ExD):
-    {.fatal: "Xx does not satisfy ExD.".}
-]#
-
 # Defines explicit concepts. 
 explicit:
   type
-  # The explicit version of an existing concept under a new name.
-  #ExC* = distinct C
+    # The explicit version of an existing concept under a new name.
+    ExC* = distinct C
 
     ExD = concept d
       d.x is float
 
 # Defines implements-relations for an existing type: X implements C and
 # ExC. C is not explicit, so the compiler will warn about it.
-#implements C, ExC: X
+implements C, ExC: X
 
 # Redundant implements-statements are ignored and warned about.
-#implements ExC: X
+implements ExC: X
 
 # Defines implements-relations for new types: Xx and Y implement ExD.
 implements ExD:
@@ -162,4 +129,4 @@ proc run*() =
   # 
   # The additional stand-in concept generated for an explicit concept (for
   # internal use, note the "magic" postfix).
-  #assert(X.checkImplements(ExC9F08B7C91364CDF2) == true)
+  assert(X.checkImplements(ExC9F08B7C91364CDF2) == true)

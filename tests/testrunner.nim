@@ -1,13 +1,12 @@
 import test
 
-# For ``implements`` and ``checkImplements``.
+# For ``implements`` and ``chwckImplements``.
 import explicitconcepts
 
 type
   C = concept c
     c.n is int
 
-#[
 run()
 
 # Implements-relationships and "explicitness" of concepts are public, check
@@ -25,4 +24,3 @@ assert(X.checkImplements(C) == false)
 # .. until one is established locally.
 implements C: X
 assert(X.checkImplements(C) == true)
-]#
