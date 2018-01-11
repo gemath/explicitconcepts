@@ -1,4 +1,4 @@
-import explicitconcepts
+import explicitconcepts, macros
 
 type
   C = concept c
@@ -37,6 +37,9 @@ explicit:
 # ExC. C is not explicit, so the compiler will warn about it.
 implements C, ExC: X
 
+# An allegedly implementing type not (yet) satisfying the concept is warned about.
+implements ExD: X
+
 # Redundant implements-statements are ignored and warned about.
 implements ExC: X
 
@@ -62,50 +65,37 @@ type
 
 explicit:
   type
-    ExDrx = concept d of ExD
-      d.n is int
+    ExDrx = distinct ExD
 
 proc run*() =
   # Make sure implements-relations registered correctly ..
-  assert(X.checkImplements(C) == true)
-  assert(X.checkImplements(ExC) == true)
-  assert(Xx.checkImplements(ExD) == true)
-  assert(Y.checkImplements(ExD) == true)
-  assert(Z[float].checkImplements(ExD) == true)
+  assert X.checkImplements(C)
+  assert X.checkImplements(ExC)
+  assert Xx.checkImplements(ExD)
+  assert Y.checkImplements(ExD)
+  assert Z[float].checkImplements(ExD)
 
   # .. and that this is no false positive.
-  assert(Yn.checkImplements(C) == false)
+  assert(not Yn.checkImplements(C))
 
   # Implements-relations extend to aliases ..
-  assert(X.checkImplements(Ca) == true)
-  assert(Xa.checkImplements(C) == true)
+  assert X.checkImplements(Ca)
+  assert Xa.checkImplements(C)
 
   # .. and to derivatives of the implementing type ..
-  assert(Xx.checkImplements(C) == true)
+  assert Xx.checkImplements(C)
 
   # .. but not to distinct aliases ..
-  assert(X.checkImplements(Cd) == false)
-  assert(Xd.checkImplements(C) == false)
+  assert(not X.checkImplements(Cd))
+  assert(not Xd.checkImplements(C))
 
   # .. or refinements of an implemented concept.
-  assert(X.checkImplements(Crt) == false)
-  assert(Xx.checkImplements(ExDr) == false)
+  assert(not X.checkImplements(Crt))
+  assert(not Xx.checkImplements(ExDr))
 
   # X is not a concept.
   assert(not(compiles do:
     implements X: Xx
-  ))
-
-  # X does not satisfy ExD.
-  # TODO: why does this make the compiler just quit with error code 1?
-  #assert(not(compiles do:
-  #  implements ExD: X
-  #))
-
-  # Aliases cannot be explicit.
-  assert(not(compiles do:
-    explicit:
-      type ExCa = ExC
   ))
 
   # These two types technically satisfy the concept, but the concept is
@@ -113,10 +103,16 @@ proc run*() =
   assert(X is ExC)
   assert(not(Yn is ExC))
 
+  # Aliases cannot be explicit.
+  assert(not(compiles do:
+    explicit:
+      type ExCa = ExC
+  ))
+
   # Also, being explicit is not just passed on to a refined concept ..
   assert(Xx is ExDr)
 
-  # .. but the refined concept itself has to be made explicit.
+  # .. but a distinct alias has to be made explicit.
   assert(not(Xx is ExDrx))
 
   # An implements-relation to an explicit concept extends to all explicit base
@@ -125,8 +121,3 @@ proc run*() =
   #  implements ExDrx: Yn
   #)
   #assert(Yn is ExD)
-
-  # 
-  # The additional stand-in concept generated for an explicit concept (for
-  # internal use, note the "magic" postfix).
-  assert(X.checkImplements(ExC9F08B7C91364CDF2) == true)
