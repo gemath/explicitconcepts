@@ -1,13 +1,9 @@
-import test
-
-# For ``implements`` and ``chwckImplements``.
 import explicitconcepts
+import test
 
 type
   C = concept c
     c.n is int
-
-run()
 
 # Implements-relationships and "explicitness" of concepts are public, check
 # wether they are  imported from another module. Qualified identifiers should

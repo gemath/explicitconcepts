@@ -37,7 +37,8 @@ explicit:
 # ExC. C is not explicit, so the compiler will warn about it.
 implements C, ExC: X
 
-# An allegedly implementing type not (yet) satisfying the concept is warned about.
+# An allegedly implementing type not even satisfying the concept is warned about.
+# TODO: should this be an error?
 implements ExD: X
 
 # Redundant implements-statements are ignored and warned about.
@@ -61,63 +62,69 @@ type
     n*: int
 
   ExDr = concept d of ExD
+    d is ExD
     d.n is int
 
 explicit:
   type
-    ExDrx = distinct ExD
+    ExDrx = concept d of ExD
+      d is ExD
+      d.n is int
 
-proc run*() =
-  # Make sure implements-relations registered correctly ..
-  assert X.checkImplements(C)
-  assert X.checkImplements(ExC)
-  assert Xx.checkImplements(ExD)
-  assert Y.checkImplements(ExD)
-  assert Z[float].checkImplements(ExD)
+implements ExDrx:
+  type
+    Xy = object
+      n: int
+      x: float
 
-  # .. and that this is no false positive.
-  assert(not Yn.checkImplements(C))
+# Make sure implements-relations registered correctly ..
+assert X.checkImplements(C)
+assert X.checkImplements(ExC)
+assert Xx.checkImplements(ExD)
+assert Y.checkImplements(ExD)
+assert Z[float].checkImplements(ExD)
 
-  # Implements-relations extend to aliases ..
-  assert X.checkImplements(Ca)
-  assert Xa.checkImplements(C)
+# .. and that this is no false positive.
+assert(not Yn.checkImplements(C))
 
-  # .. and to derivatives of the implementing type ..
-  assert Xx.checkImplements(C)
+# Implements-relations extend to aliases ..
+assert X.checkImplements(Ca)
+assert Xa.checkImplements(C)
 
-  # .. but not to distinct aliases ..
-  assert(not X.checkImplements(Cd))
-  assert(not Xd.checkImplements(C))
+# .. and to derivatives of the implementing type ..
+assert Xx.checkImplements(C)
 
-  # .. or refinements of an implemented concept.
-  assert(not X.checkImplements(Crt))
-  assert(not Xx.checkImplements(ExDr))
+# .. but not to distinct aliases ..
+assert(not X.checkImplements(Cd))
+assert(not Xd.checkImplements(C))
 
-  # X is not a concept.
-  assert(not(compiles do:
-    implements X: Xx
-  ))
+# .. or refinements of an implemented concept.
+assert(not X.checkImplements(Crt))
+assert(not Xx.checkImplements(ExDr))
 
-  # These two types technically satisfy the concept, but the concept is
-  # explicit and only X has an implements-relation with it.
-  assert(X is ExC)
-  assert(not(Yn is ExC))
+# X is not a concept.
+# NOTE: this test is not sufficient since compilation might fail for other
+# reasons.
+assert(not(compiles do:
+  implements X: Xx
+))
 
-  # Aliases cannot be explicit.
-  assert(not(compiles do:
-    explicit:
-      type ExCa = ExC
-  ))
+# These two types technically satisfy the concept, but the concept is
+# explicit and only X has an implements-relation with it.
+assert(X is ExC)
+assert(not(Yn is ExC))
 
-  # Also, being explicit is not just passed on to a refined concept ..
-  assert(Xx is ExDr)
+# Aliases cannot be explicit.
+# NOTE: this test is not sufficient since compilation might fail for other
+# reasons.
+assert(not(compiles do:
+  explicit:
+    type ExCa = ExC
+))
 
-  # .. but a distinct alias has to be made explicit.
-  assert(not(Xx is ExDrx))
+# Being explicit is not just passed on to a refined concept.
+assert(Xx is ExDr)
 
-  # An implements-relation to an explicit concept extends to all explicit base
-  # concepts.
-  #assert(compiles do:
-  #  implements ExDrx: Yn
-  #)
-  #assert(Yn is ExD)
+# An implements-relation to an explicit concept extends to all explicit base
+# concepts.
+assert(Xy.checkImplements(ExD))

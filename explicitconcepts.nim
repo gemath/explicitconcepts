@@ -119,7 +119,7 @@ proc conceptInfo(c: NimNode): ConceptInfo =
   let cd = c.symbol.getImpl
   (cd, cd).conceptInfo
 
-proc id*(c: NimNode): ConceptId =
+proc id(c: NimNode): ConceptId =
   let ci = c.conceptInfo
   if ci.cdef.isNil:
     error($c.symbol & " is not a concept.", c)
@@ -171,12 +171,11 @@ proc implBy(c, t, stmts: NimNode, warn: bool = true) =
   let ci = c.conceptInfo
   if ci.cdef.isNil:
     error($c.symbol & " is not a concept.", c)
-  # TODO: do I want this here?
- #let bases = baseConcepts(ci.cdef)
- #if not bases.isNil:
- #  for b in bases:
- #    if b.isExplicit:
- #      implBy(b, t, stmts, false)
+  let bases = baseConcepts(ci.cdef)
+  if not bases.isNil:
+    for b in bases:
+      if b.isExplicit:
+        implBy(b, t, stmts, false)
   stmts.add getAst procDef(t, ci.toId, warn, c.repr)
   if not ci.isExplicit:
     if warn:
@@ -188,14 +187,14 @@ macro implementedBy(c, t: typed): untyped =
   ## ``c`` and all of its base concepts.
   result = newStmtList()
   implBy(c, t, result)
-  #echo result.repr
+ #echo result.repr
 
 proc implStmts(args, t: NimNode): seq[NimNode] {.compileTime.} =
   result = @[]
   for c in args:
     if nnkStmtList == c.kind:
       break
-    let msg = "$# does not (yet) satisfy $#." % [t.repr, c.repr]
+    let msg = "$# does not satisfy $#." % [t.repr, c.repr]
     result.add quote do:
       implementedBy(`c`, `t`)
       when not(`t` is `c`):
