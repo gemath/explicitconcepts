@@ -15,9 +15,10 @@ type if such an ``implements``-relation exists.
 Use
 ====
 
-.. code-block:: nim
+```nim
   implements C, ExC: X
-  
+```
+
 Defines ``implements``-relations for an existing type and existing concepts:
 ``X`` implements concepts ``C`` and ``ExC``.
 
