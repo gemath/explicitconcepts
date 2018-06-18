@@ -17,6 +17,7 @@ Use
 
 .. code-block:: nim
   implements C, ExC: X
+  
 Defines ``implements``-relations for an existing type and existing concepts:
 ``X`` implements concepts ``C`` and ``ExC``.
 
@@ -25,6 +26,7 @@ Defines ``implements``-relations for an existing type and existing concepts:
     type
       ExD = concept d
         d.x is float
+        
 Defines an explicit concept ``ExD``.
 
 .. code-block:: nim
@@ -42,6 +44,7 @@ Defines an explicit concept ``ExD``.
 
   echo(Y is ExD)   # -> true
   echo(Y2 is ExD)  # -> false
+  
 Defines ``implements``-relations for new types: ``Xx`` and ``Y``
 implement concept ``ExD``. Note that, despite the fact that it fulfills
 the requirement in the body of ``ExD``, ``Y2`` does not satisfy ``ExD``
