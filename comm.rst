@@ -19,17 +19,18 @@ Use
 
   implements C, ExC: X
 Defines ``implements``-relations for an existing type and existing concepts:
-``X`` implements concepts ``C`` and ``ExC``.
+``X`` implements concepts ``C`` and ``ExC``
 
-.. code-block:: nim
+::
+
   explicit:
     type
       ExD = concept d
         d.x is float
-        
 Defines an explicit concept ``ExD``.
 
-.. code-block:: nim
+::
+
   implements ExD:
     type
       Xx = object
