@@ -18,7 +18,6 @@ Use
 ::
 
   implements C, ExC: X
-
 Defines ``implements``-relations for an existing type and existing concepts:
 ``X`` implements concepts ``C`` and ``ExC``.
 
