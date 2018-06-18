@@ -16,6 +16,7 @@ Use
 ====
 
 ::
+
   implements C, ExC: X
 
 Defines ``implements``-relations for an existing type and existing concepts:
